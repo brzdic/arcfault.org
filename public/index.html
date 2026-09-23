@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>arcfault.org — Report nuisance AFCI breaker trips</title>
+<meta name="description" content="A public map of nuisance arc fault breaker trips across the U.S., with the food, property and injuries they cause. Report yours.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg width="44" height="54" viewBox="0 0 44 54" aria-hidden="true">
+        <rect x="2" y="2" width="40" height="50" rx="6" fill="var(--ink)"/>
+        <rect x="9" y="10" width="26" height="34" rx="3" fill="var(--surface2)"/>
+        <rect x="13" y="21" width="18" height="12" rx="2" fill="var(--amber)"/>
+        <path d="M24 5 18 16h6l-4 9" stroke="var(--amber)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <h1>arcfault<span>.org</span></h1>
+        <p class="slogan">Making electric life better, one report at a time.</p>
+      </div>
+    </div>
+  </header>
+</div>
+<nav>
+  <div class="wrap tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="map" aria-selected="true">Map</button>
+    <button class="tab" role="tab" data-tab="list" aria-selected="false">Reports</button>
+    <button class="tab cta" role="tab" data-tab="form" aria-selected="false">Report a trip</button>
+      </div>
+</nav>
+<main class="wrap">
+  <div id="status" class="notice" hidden></div>
+
+  <section id="map" role="tabpanel">
+    <div class="stats">
+      <div class="stat"><b id="sReports">0</b><small>Reports</small></div>
+      <div class="stat"><b id="sStates">0</b><small>States</small></div>
+      <div class="stat"><b id="sFood">$0</b><small>Food &amp; property lost</small></div>
+      <div class="stat"><b id="sInj">0</b><small>Injuries reported</small></div>
+    </div>
+    <div class="mapbox">
+      <svg id="usmap" viewBox="0 0 1000 640" role="img" aria-label="Map of reported nuisance trips across the United States"></svg>
+      <div class="legend" id="legend"></div>
+      <div class="info" id="info"><p>Tap a dot to see the reports from that town. Colors show how many trips were reported in the surrounding area.</p></div>
+    </div>
+  </section>
+
+  <section id="list" role="tabpanel" hidden>
+    <div class="filters">
+      <input id="q" type="search" placeholder="Search town, brand or appliance" aria-label="Search reports">
+      <select id="fState" aria-label="Filter by state"><option value="">All states</option></select>
+      <select id="fVer" aria-label="Filter by verification"><option value="">All reports</option><option value="v">Electrician verified</option></select>
+    </div>
+    <div id="reps"></div>
+  </section>
+
+  <section id="form" role="tabpanel" hidden>
+    <div id="formMsg"></div>
+    <form id="rf" novalidate>
+      <label class="hp" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
+      <fieldset>
+        <legend>About you</legend>
+        <div class="grid">
+          <label class="f">First name <em>*</em><input name="first" autocomplete="given-name" required></label>
+          <label class="f">Last name <em>*</em><input name="last" autocomplete="family-name" required></label>
+          <label class="f full">Email <em>*</em><input name="email" type="email" autocomplete="email" required></label>
+          <label class="f full">Phone <span class="opt">(optional)</span><input name="phone" type="tel" autocomplete="tel">
+            <p class="hint">Your phone number is never shared or sold. We use it only to verify your report and follow up if needed.</p></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Where it happened</legend>
+        <div class="grid">
+          <label class="f full">Street address <em>*</em><input name="street" autocomplete="address-line1" required></label>
+          <label class="f">Town <em>*</em><input name="town" autocomplete="address-level2" required></label>
+          <label class="f">State <em>*</em><select name="state" required><option value="">Choose</option></select></label>
+          <label class="f">ZIP <em>*</em><input name="zip" inputmode="numeric" autocomplete="postal-code" required pattern="\d{5}"></label>
+        </div>
+        <p class="hint">Only your town and state appear on the map. Your street address stays private.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>The trip</legend>
+        <div class="grid">
+          <label class="f">When did it happen? <em>*</em><input name="date" type="date" required></label>
+          <label class="f">How often? <em>*</em><select name="freq" required><option value="">Choose</option><option>Once</option><option>A few times</option><option>Weekly</option><option>Daily</option><option>Several times a day</option></select></label>
+          <label class="f">Breaker brand <em>*</em><select name="brand" required><option value="">Choose</option><option>Square D</option><option>Eaton / Cutler-Hammer</option><option>Siemens</option><option>GE / ABB</option><option>Leviton</option><option>Murray</option><option>Other</option><option>Not sure</option></select></label>
+          <label class="f">Breaker type<select name="btype"><option>Not sure</option><option>AFCI</option><option>Dual function AFCI/GFCI</option></select></label>
+          <label class="f">What was running? <em>*</em><select name="appliance" required><option value="">Choose</option><option>Refrigerator or freezer</option><option>Treadmill or exercise equipment</option><option>Vacuum</option><option>Space heater</option><option>Sump or well pump</option><option>LED or dimmer lighting</option><option>Furnace or HVAC</option><option>Power tools</option><option>Other</option><option>Unknown</option></select></label>
+          <label class="f">What fixed it?<select name="fix"><option>Still happening</option><option>Replaced the breaker</option><option>Replaced the appliance</option><option>Electrician found a real fault</option><option>Other</option></select></label>
+          <label class="f full">What happened? <em>*</em><textarea name="story" required placeholder="What tripped, when, what you had to do to reset it"></textarea>
+            <p class="hint">A short version of this may be shown publicly. We remove names and addresses before publishing.</p></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Losses <span class="opt" style="font:400 15px Barlow,sans-serif;color:var(--muted)">(optional)</span></legend>
+        <div class="grid">
+          <label class="f">Food lost ($)<input name="food" type="number" min="0" inputmode="decimal"></label>
+          <label class="f">Property damage ($)<input name="prop" type="number" min="0" inputmode="decimal"></label>
+          <label class="f full">Property damage details<input name="propDesc" placeholder="Frozen pipe, flooded basement, spoiled medication"></label>
+          <label class="choice full"><input type="checkbox" name="injury"><span>Someone was injured<small>For example, a fall in the dark or a medical device losing power. Injury details stay private.</small></span></label>
+          <label class="f full">Injury details<textarea name="injDesc"></textarea></label>
+        </div>
+        <p class="hint">Photo uploads (breaker label, damage, receipts) come with the full site.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Electrician <span style="font:400 15px Barlow,sans-serif;color:var(--muted)">(optional)</span></legend>
+        <div class="grid">
+          <label class="f">Electrician name<input name="elec"></label>
+          <label class="f">License number<input name="lic"></label>
+        </div>
+        <p class="hint">Reports with a license number are marked electrician verified.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Privacy</legend>
+        <label class="f">How should your name appear? <em>*</em></label>
+        <label class="choice"><input type="radio" name="display" value="initials" required><span>First name and last initial<small id="prevInit">For example, Mike R.</small></span></label>
+        <label class="choice"><input type="radio" name="display" value="anon"><span>Anonymous<small>Shows only your town and state</small></span></label>
+        <div class="err" id="errDisplay" hidden>Choose how your name should appear.</div>
+        <label class="choice"><input type="checkbox" name="consent" required><span>I agree arcfault.org may contact me by email or phone about this report. <em style="color:var(--warn);font-style:normal">*</em><small>Your full name, address, email and phone stay private and are never sold.</small></span></label>
+        <div class="err" id="errConsent" hidden>Check this box so we can verify your report.</div>
+        <label class="choice"><input type="checkbox" name="news"><span>Send me the newsletter and code changes for my state</span></label>
+      </fieldset>
+      <button class="primary" type="submit" id="send">Send report</button>
+    </form>
+  </section>
+</main>
+<div class="wrap"><footer>Reports are submitted by the public and reviewed before they appear. arcfault.org does not sell personal information.</footer></div>
+
+<script type="module">
+import { STATES } from "./geo.js";
+
+const LEVELS = [{min:1,label:"1",c:"var(--l1)"},{min:2,label:"2–4",c:"var(--l2)"},{min:5,label:"5–9",c:"var(--l3)"},{min:10,label:"10–19",c:"var(--l4)"},{min:20,label:"20+",c:"var(--l5)"}];
+const RADIUS_KM = 150;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = n => "$" + Math.round(n||0).toLocaleString("en-US");
+const fmtDate = d => { if(!d) return ""; const t = new Date(d + "T12:00:00"); return isNaN(t) ? d : t.toLocaleDateString("en-US",{month:"short",year:"numeric"}); };
+
+let published = [], selTown = null;
+
+/* ---------- Tabs ---------- */
+function showTab(name){
+  document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name));
+  document.querySelectorAll("main > section").forEach(s => s.hidden = s.id !== name);
+  window.scrollTo({top:0});
+}
+document.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+/* ---------- Projection (Albers equal-area, lower 48) ---------- */
+const R = Math.PI/180, p1 = 29.5*R, p2 = 45.5*R, p0 = 37.5*R, l0 = -96*R;
+const n = (Math.sin(p1)+Math.sin(p2))/2, C = Math.cos(p1)**2 + 2*n*Math.sin(p1), rho0 = Math.sqrt(C-2*n*Math.sin(p0))/n;
+function alb(lon, lat){ const rho = Math.sqrt(C-2*n*Math.sin(lat*R))/n, th = n*(lon*R-l0); return [rho*Math.sin(th), rho0-rho*Math.cos(th)]; }
+const OUTLINE = [[-124.7,48.4],[-123.1,49],[-95.2,49],[-94.8,49.4],[-89.6,48],[-84.8,46.8],[-82.4,45.3],[-82.5,43],[-79,43.3],[-76.9,43.6],[-75.3,44.9],[-71.5,45],[-70,46.7],[-69.2,47.4],[-67.8,47.1],[-67,44.8],[-70.2,43.6],[-70.8,42.9],[-70.6,42],[-70.1,42.05],[-69.95,41.9],[-69.95,41.65],[-70.4,41.55],[-71.1,41.5],[-72.9,41.2],[-73.9,40.6],[-74,40],[-74.9,38.9],[-75.5,38.4],[-75.9,37.2],[-76,36.8],[-75.5,35.3],[-76.5,34.7],[-78,33.9],[-79.2,33.2],[-80.8,32.1],[-81.4,30.7],[-80.6,28.4],[-80,26.7],[-80.4,25.2],[-81.1,25.1],[-81.8,26.1],[-82.7,27.6],[-82.8,29.2],[-83.9,30],[-85.3,29.7],[-86.5,30.4],[-88.1,30.4],[-89.6,30.2],[-89.4,29.2],[-90.1,29.1],[-91.8,29.5],[-93.8,29.7],[-94.8,29.3],[-96.8,28.2],[-97.4,27.3],[-97.2,25.9],[-99.1,26.4],[-100.3,28],[-101.4,29.8],[-102.7,29.7],[-103.3,29],[-104.5,29.6],[-106.5,31.8],[-108.2,31.8],[-108.2,31.3],[-111.1,31.3],[-114.8,32.5],[-117.1,32.5],[-118.4,33.8],[-120.6,34.6],[-121.9,36.6],[-122.5,37.8],[-123.8,39.4],[-124.4,40.4],[-124.2,42],[-124.5,43.4],[-123.9,46.3],[-124.7,48.4]];
+const raw = OUTLINE.map(([a,b]) => alb(a,b));
+const xs = raw.map(p=>p[0]), ys = raw.map(p=>p[1]);
+const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+const W = 1000, H = 640, pad = 20, mapH = 560;
+const k = Math.min((W-2*pad)/(maxX-minX), (mapH-2*pad)/(maxY-minY));
+const ox = (W - k*(maxX-minX))/2;
+function proj(lon, lat){
+  if (lat > 50 && lon < -129) return [60 + (lon+170)/(-130+170)*150, 575 + (72-lat)/(72-54)*50]; // Alaska inset
+  if (lat < 23 && lon < -150) return [255 + (lon+160.5)/(-154.5+160.5)*100, 580 + (22.5-lat)/(22.5-18.8)*45]; // Hawaii inset
+  const [x,y] = alb(lon, lat); return [ox + (x-minX)*k, pad + (maxY-y)*k];
+}
+
+function km(a, b){ const dLat=(b.lat-a.lat)*R, dLon=(b.lon-a.lon)*R; const x = Math.sin(dLat/2)**2 + Math.cos(a.lat*R)*Math.cos(b.lat*R)*Math.sin(dLon/2)**2; return 12742*Math.asin(Math.sqrt(x)); }
+function levelFor(count){ let L = LEVELS[0]; for (const l of LEVELS) if (count >= l.min) L = l; return L; }
+
+/* ---------- Render map ---------- */
+function drawMap(){
+  const svg = $("#usmap");
+  const d = OUTLINE.map(([a,b],i) => { const [x,y] = proj(a,b); return (i?"L":"M") + x.toFixed(1) + " " + y.toFixed(1); }).join("") + "Z";
+  const towns = new Map();
+  for (const r of published){ const key = r.town.toLowerCase() + "," + r.state; if (!towns.has(key)) towns.set(key, {key, town:r.town, state:r.state, lat:r.lat, lon:r.lon, reps:[]}); towns.get(key).reps.push(r); }
+  const list = [...towns.values()];
+  for (const t of list){ t.density = published.filter(r => km(t, r) <= RADIUS_KM).length; t.level = levelFor(t.density); }
+  list.sort((a,b) => a.density - b.density);
+  let dots = "";
+  for (const t of list){
+    const [x,y] = proj(t.lon, t.lat); const r = 6 + Math.min(10, t.reps.length*1.6);
+    dots += `<circle class="dot${selTown===t.key?" sel":""}" data-key="${esc(t.key)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${t.level.c}" tabindex="0" role="button" aria-label="${esc(t.town)}, ${t.state}: ${t.reps.length} report${t.reps.length>1?"s":""}"><title>${esc(t.town)}, ${t.state}</title></circle>`;
+  }
+  svg.innerHTML = `<path class="land" d="${d}"/>
+    <rect class="inset" x="45" y="565" width="180" height="68" rx="6"/><text class="insetlabel" x="52" y="582">Alaska</text>
+    <rect class="inset" x="245" y="565" width="120" height="68" rx="6"/><text class="insetlabel" x="252" y="582">Hawaii</text>${dots}`;
+  svg.querySelectorAll(".dot").forEach(c => { const go = () => selectTown(c.dataset.key, list); c.addEventListener("click", go); c.addEventListener("keydown", e => { if (e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } }); });
+  if (selTown) selectTown(selTown, list, true);
+}
+function selectTown(key, list, quiet){
+  const t = list.find(x => x.key === key); if (!t) return;
+  selTown = key;
+  if (!quiet) document.querySelectorAll(".dot").forEach(c => c.classList.toggle("sel", c.dataset.key === key));
+  const count = (arr) => { const m = {}; arr.forEach(v => m[v] = (m[v]||0)+1); return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v]) => `${k} (${v})`).join(", "); };
+  $("#info").innerHTML = `<h3>${esc(t.town)}, ${t.state}</h3>
+    <p>${t.reps.length} report${t.reps.length>1?"s":""} here, ${t.density} within ${Math.round(RADIUS_KM*0.621)} miles. Level: <b style="color:${t.level.c}">${t.level.label}</b></p>
+    <p>Brands: ${esc(count(t.reps.map(r=>r.brand)))}</p>
+    <p>Running at the time: ${esc(count(t.reps.map(r=>r.appliance)))}</p>
+    <p><button class="linkbtn" id="seeTown">Read these reports</button></p>`;
+  $("#seeTown").onclick = () => { $("#q").value = t.town; $("#fState").value = t.state; renderList(); showTab("list"); };
+}
+$("#legend").innerHTML = "Reports in the area: " + LEVELS.map(l => `<span><i style="background:${l.c}"></i>${l.label}</span>`).join("");
+
+function renderStats(){
+  $("#sReports").textContent = published.length.toLocaleString();
+  $("#sStates").textContent = new Set(published.map(r => r.state)).size;
+  $("#sFood").textContent = money(published.reduce((s,r) => s + (+r.foodLoss||0) + (+r.propertyLoss||0), 0));
+  $("#sInj").textContent = published.filter(r => r.injury).length;
+}
+
+/* ---------- Render list ---------- */
+function densityOf(r){ return published.filter(x => km(r, x) <= RADIUS_KM).length; }
+function renderList(){
+  const q = $("#q").value.trim().toLowerCase(), st = $("#fState").value, v = $("#fVer").value;
+  const rows = published.filter(r => (!st || r.state === st) && (!v || r.verified) && (!q || [r.town, r.brand, r.appliance, r.summary, STATES[r.state]?.[0]].join(" ").toLowerCase().includes(q)))
+    .sort((a,b) => (b.dateOfTrip||"").localeCompare(a.dateOfTrip||""));
+  $("#reps").innerHTML = rows.length ? rows.map(r => {
+    const L = levelFor(densityOf(r));
+    const loss = (+r.foodLoss||0) + (+r.propertyLoss||0);
+    return `<article class="rep" style="--lc:${L.c}"><header><h3>${esc(r.display)}</h3><span class="where">${esc(r.town)}, ${r.state} · ${fmtDate(r.dateOfTrip)}</span></header>
+      <p>${esc(r.summary)}</p>
+      <div class="tags"><span class="tag">${esc(r.brand)}</span><span class="tag">${esc(r.appliance)}</span><span class="tag">${esc(r.frequency)}</span>${loss?`<span class="tag">Lost ${money(loss)}</span>`:""}${r.injury?`<span class="tag i">Injury reported</span>`:""}${r.verified?`<span class="tag v">Electrician verified</span>`:""}${r.sample?`<span class="tag s">Sample</span>`:""}</div></article>`;
+  }).join("") : `<p class="empty">No reports match. Try another state or clear the search.</p>`;
+  const cur = $("#fState").value;
+  const present = [...new Set(published.map(r => r.state))].sort();
+  $("#fState").innerHTML = `<option value="">All states</option>` + present.map(s => `<option value="${s}">${esc(STATES[s]?.[0]||s)}</option>`).join("");
+  $("#fState").value = present.includes(cur) ? cur : "";
+}
+["#q","#fState","#fVer"].forEach(s => $(s).addEventListener("input", renderList));
+
+/* ---------- Form ---------- */
+const stSel = document.querySelector('[name="state"]');
+stSel.innerHTML += Object.entries(STATES).sort((a,b)=>a[1][0].localeCompare(b[1][0])).map(([k,v]) => `<option value="${k}">${v[0]}</option>`).join("");
+const rf = $("#rf");
+rf.first.addEventListener("input", upd); rf.last.addEventListener("input", upd);
+function upd(){ const f = rf.first.value.trim(), l = rf.last.value.trim(); $("#prevInit").textContent = f ? `Shows as ${f} ${l ? l[0].toUpperCase()+"." : ""}` : "For example, Mike R."; }
+
+function validate(){
+  let ok = true, first = null;
+  rf.querySelectorAll(".f").forEach(l => { l.classList.remove("bad"); l.querySelector(".err")?.remove(); });
+  rf.querySelectorAll(".f input[required], .f select[required], .f textarea[required]").forEach(el => {
+    let msg = "";
+    if (!el.value.trim()) msg = "Fill this in.";
+    else if (el.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value)) msg = "Enter an email like name@example.com.";
+    else if (el.name === "zip" && !/^\d{5}$/.test(el.value.trim())) msg = "Enter a 5-digit ZIP.";
+    if (msg){ ok = false; const lab = el.closest(".f"); lab.classList.add("bad"); lab.insertAdjacentHTML("beforeend", `<div class="err">${msg}</div>`); first = first || el; }
+  });
+  const dOk = !!rf.querySelector('[name="display"]:checked'); $("#errDisplay").hidden = dOk; if (!dOk){ ok = false; first = first || rf.querySelector('[name="display"]'); }
+  const cOk = rf.consent.checked; $("#errConsent").hidden = cOk; if (!cOk){ ok = false; first = first || rf.consent; }
+  if (first) first.focus();
+  return ok;
+}
+
+rf.addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!validate()) return;
+  const btn = $("#send"); btn.disabled = true; btn.textContent = "Sending…";
+  const f = Object.fromEntries(new FormData(rf).entries());
+  const body = {...f, injury: !!f.injury, news: !!f.news, consent: !!f.consent};
+  try {
+    const res = await fetch("/api/reports", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(out.error || "The report didn't send.");
+    rf.reset(); upd();
+    $("#formMsg").innerHTML = `<div class="notice good"><b>Report sent.</b> Thank you. It will appear on the map after review, usually within a few days.</div>`;
+    window.scrollTo({top:0});
+  } catch(err){
+    $("#formMsg").innerHTML = `<div class="notice bad">${esc(err.message)} Check the form and press Send report again.</div>`;
+  } finally { btn.disabled = false; btn.textContent = "Send report"; }
+});
+
+function flash(msg, bad){ const s = $("#status"); s.className = "notice" + (bad ? " bad" : ""); s.textContent = msg; s.hidden = false; setTimeout(() => s.hidden = true, 6000); }
+
+/* ---------- Boot ---------- */
+function renderAll(){ renderStats(); drawMap(); renderList(); }
+renderAll();
+async function load(){
+  try {
+    const res = await fetch("/api/reports");
+    if (!res.ok) throw new Error();
+    const rows = await res.json();
+    published = rows.filter(r => typeof r.lat === "number").map(r => ({...r, dateOfTrip:r.trip_date, breakerType:r.breaker_type, foodLoss:r.food_loss, propertyLoss:r.property_loss}));
+    renderAll();
+    if (!published.length) $("#info").innerHTML = "<p>No reports on the map yet. Be the first to report a nuisance trip.</p>";
+  } catch {
+    $("#info").innerHTML = "<p>Reports couldn't load. Refresh the page to try again.</p>";
+  }
+}
+load();
+</script>
+</body>
+</html>

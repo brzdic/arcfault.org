@@ -1,0 +1,17 @@
+{
+  "name": "arcfault",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "@netlify/database": "latest"
+  },
+  "devDependencies": {
+    "@netlify/functions": "latest"
+  },
+  "engines": {
+    "node": ">=20.12.2"
+  }
+}

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>arcfault.org admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div><h1>arcfault<span>.org</span> admin</h1><p class="slogan">Review reports, contact reporters, export your data.</p></div>
+    </div>
+  </header>
+</div>
+<main class="wrap">
+  <div id="status" class="notice" hidden></div>
+
+  <form id="login" class="login">
+    <label class="f">Admin password<input id="pw" type="password" autocomplete="current-password" required></label>
+    <button class="primary" type="submit">Log in</button>
+    <p class="hint" id="loginErr" hidden></p>
+  </form>
+
+  <div id="app" hidden>
+    <div class="sub" role="group" aria-label="Admin views">
+      <button class="tab" data-sub="pending" aria-selected="true">Pending</button>
+      <button class="tab" data-sub="published" aria-selected="false">Published</button>
+      <button class="tab" data-sub="rejected" aria-selected="false">Rejected</button>
+      <button class="tab" data-sub="newsletter" aria-selected="false">Newsletter</button>
+    </div>
+    <div class="row" style="margin:0 0 14px">
+      <button class="secondary" id="exportAll">Export all reports (CSV)</button>
+      <button class="secondary" id="logout">Log out</button>
+    </div>
+    <div id="admBody"></div>
+  </div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = n => "$" + Math.round(+n || 0).toLocaleString("en-US");
+const fmtDate = d => { if (!d) return ""; const t = new Date(String(d).slice(0,10) + "T12:00:00"); return isNaN(t) ? d : t.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); };
+let pw = "";
+try { pw = sessionStorage.getItem("afpw") || ""; } catch {}
+let sub = "pending";
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {...opts, headers: {...(opts.headers||{}), authorization: "Bearer " + pw, "content-type": "application/json"}});
+  if (res.status === 401) { logout(); throw new Error("Wrong password."); }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Request failed."); }
+  return res;
+}
+function flash(msg, bad) { const s = $("#status"); s.className = "notice" + (bad ? " bad" : " good"); s.textContent = msg; s.hidden = false; setTimeout(() => s.hidden = true, 5000); }
+function logout() { pw = ""; try { sessionStorage.removeItem("afpw"); } catch {} $("#app").hidden = true; $("#login").hidden = false; }
+
+$("#login").addEventListener("submit", async e => {
+  e.preventDefault();
+  pw = $("#pw").value;
+  try { await api("/api/admin?view=pending"); try { sessionStorage.setItem("afpw", pw); } catch {} start(); }
+  catch (err) { $("#loginErr").hidden = false; $("#loginErr").textContent = err.message; }
+});
+$("#logout").onclick = logout;
+
+async function download(path) {
+  try {
+    const res = await api(path);
+    const blob = await res.blob();
+    const name = (res.headers.get("content-disposition") || "").match(/filename="(.+)"/)?.[1] || "export.csv";
+    const a = Object.assign(document.createElement("a"), {href: URL.createObjectURL(blob), download: name});
+    document.body.append(a); a.click(); a.remove();
+  } catch (err) { flash(err.message, true); }
+}
+$("#exportAll").onclick = () => download("/api/admin?view=export");
+
+document.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => {
+  sub = b.dataset.sub;
+  document.querySelectorAll("[data-sub]").forEach(x => x.setAttribute("aria-selected", x === b));
+  render();
+});
+
+function publicName(r) { return r.display_choice === "anon" ? "Anonymous" : `${r.first_name} ${(r.last_name||"")[0]?.toUpperCase()||""}.`; }
+
+async function render() {
+  $("#admBody").innerHTML = `<p class="empty">Loading…</p>`;
+  try {
+    if (sub === "newsletter") {
+      const rows = await (await api("/api/admin?view=newsletter")).json();
+      const byState = {}; rows.forEach(r => byState[r.state] = (byState[r.state]||0) + 1);
+      $("#admBody").innerHTML = rows.length ? `<p>${rows.length} subscriber${rows.length>1?"s":""}. By state: ${Object.entries(byState).sort().map(([s,c]) => `${s} ${c}`).join(", ")}</p>
+        <div class="row" style="margin:0 0 12px"><button class="secondary" id="newsCsv">Download list (CSV)</button></div>
+        <div class="tscroll"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Town</th><th>State</th></tr></thead><tbody>${rows.map(r => `<tr><td>${esc(r.first_name)} ${esc(r.last_name)}</td><td><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></td><td>${esc(r.phone)}</td><td>${esc(r.town)}</td><td>${esc(r.state)}</td></tr>`).join("")}</tbody></table></div>`
+        : `<p class="empty">No newsletter sign-ups yet.</p>`;
+      $("#newsCsv")?.addEventListener("click", () => download("/api/admin?view=newsletter&format=csv"));
+      return;
+    }
+    const rows = await (await api("/api/admin?view=" + sub)).json();
+    $("#admBody").innerHTML = rows.length ? rows.map(r => `<article class="rep adm" data-id="${r.id}">
+      <header><h3>${esc(r.first_name)} ${esc(r.last_name)}</h3><span class="where">#${r.id} · sent ${fmtDate(r.created_at)} · shows as ${esc(publicName(r))}</span></header>
+      <dl>
+        <dt>Email</dt><dd><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></dd>
+        <dt>Phone</dt><dd>${r.phone ? `<a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>` : "—"}</dd>
+        <dt>Address</dt><dd>${esc(r.street)}, ${esc(r.town)}, ${esc(r.state)} ${esc(r.zip)}</dd>
+        <dt>Trip</dt><dd>${fmtDate(r.trip_date)}, ${esc(r.frequency)}</dd>
+        <dt>Breaker</dt><dd>${esc(r.brand)}${r.breaker_type ? ", " + esc(r.breaker_type) : ""}</dd>
+        <dt>Running</dt><dd>${esc(r.appliance)}</dd>
+        <dt>Fixed by</dt><dd>${esc(r.fix || "—")}</dd>
+        <dt>Story</dt><dd>${esc(r.story)}</dd>
+        <dt>Losses</dt><dd>Food ${money(r.food_loss)}, property ${money(r.property_loss)}${r.property_desc ? " — " + esc(r.property_desc) : ""}</dd>
+        <dt>Injury</dt><dd>${r.injury ? "Yes — " + esc(r.injury_desc || "no details") : "No"}</dd>
+        <dt>Electrician</dt><dd>${esc(r.electrician || "—")}${r.license ? ", license " + esc(r.license) : ""}</dd>
+        <dt>Newsletter</dt><dd>${r.newsletter ? "Yes" : "No"}</dd>
+      </dl>
+      ${sub === "pending" ? `<label class="f" style="margin-top:10px">Public summary<textarea class="sum">${esc(r.public_summary || r.story)}</textarea><span class="hint">Remove names, addresses and anything identifying before publishing.</span></label>
+        <div class="row"><button class="primary" data-act="publish">Approve and publish</button><button class="secondary" data-act="reject">Reject</button></div>`
+      : sub === "published" ? `<p><b>Public summary:</b> ${esc(r.public_summary)}</p><div class="row"><button class="secondary" data-act="pending">Remove from map</button></div>`
+      : `<div class="row"><button class="secondary" data-act="pending">Move back to pending</button></div>`}
+    </article>`).join("") : `<p class="empty">Nothing ${sub} right now.</p>`;
+    $("#admBody").querySelectorAll("[data-act]").forEach(btn => btn.onclick = async () => {
+      const card = btn.closest("article");
+      btn.disabled = true;
+      try {
+        await api("/api/admin", {method: "POST", body: JSON.stringify({action: btn.dataset.act, id: +card.dataset.id, summary: card.querySelector(".sum")?.value})});
+        flash({publish: "Published to the map.", reject: "Rejected.", pending: "Moved to pending."}[btn.dataset.act]);
+        render();
+      } catch (err) { btn.disabled = false; flash(err.message, true); }
+    });
+  } catch (err) { $("#admBody").innerHTML = `<p class="empty">${esc(err.message)}</p>`; }
+}
+
+function start() { $("#login").hidden = true; $("#app").hidden = false; render(); }
+if (pw) api("/api/admin?view=pending").then(start).catch(() => {});
+</script>
+</body>
+</html>
